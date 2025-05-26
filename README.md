@@ -1,9 +1,41 @@
 # Отчёт по Курсовой работе (RxJava, реализация аналогичной RxJava-библиотеки)
-
-
 ---
 
-## 1. Архитектура системы
+## 1. Структура проекта
+
+```plaintext
+RxJavaAlt/
+├─ .idea/
+├─ src/
+│  ├─ main/
+│  │  ├─ java/
+│  │  │  └─ com.rxjava.alt/
+│  │  │     ├─ core/
+│  │  │     │   ├─ Disposable.java
+│  │  │     │   ├─ Observable.java
+│  │  │     │   └─ Observer.java
+│  │  │     ├─ operators/
+│  │  │     │   ├─ FilterOperator.java
+│  │  │     │   ├─ FlatMapOperator.java
+│  │  │     │   └─ MapOperator.java
+│  │  │     ├─ schedulers/
+│  │  │     │   ├─ ComputationScheduler.java
+│  │  │     │   ├─ IOThreadScheduler.java
+│  │  │     │   ├─ Scheduler.java
+│  │  │     │   └─ SingleThreadScheduler.java
+│  │  │     └─ org/
+│  │  │         └─ example/
+│  │  │             └─ Main.java
+│  │  └─ resources/
+│  └─ test/
+│     └─ java/
+│        └─ com.rxjava.alt.tests/
+│            └─ ObservableTest.java
+├─ target/
+├─ .gitignore
+├─ pom.xml
+└─ README.md
+```
 
 ### 1.1 Модуль `core`
 
