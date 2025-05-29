@@ -108,9 +108,9 @@ RxJavaAlt/
 
 ## 2. Принципы работы Schedulers
 
-### 2.1 Для чего они нужны
+### 2.1 Назначение Schedulers 
 
-- **В обычном Java** нам бы пришлось вручную создавать потоки, сохранять объекты `Thread` или `ExecutorService`, обрабатывать исключения и т.д., а в нашей мини-RxJava** весь этот хаос спрятан за простым интерфейсом:
+Чтобы не нужно было вручную создавать потоки, сохранять объекты `Thread` или `ExecutorService`, обрабатывать исключения и т.д., в нашей мини-RxJava** все эти сложности спрятаны за простым интерфейсом:
   ```java
   public interface Scheduler {
       void execute(Runnable task);
@@ -121,7 +121,7 @@ RxJavaAlt/
   - **ComputationScheduler** (использует `Executors.newFixedThreadPool(cores)`)
   - **SingleThreadScheduler** (использует `Executors.newSingleThreadExecutor()`)
 
-## 2.2 Чем они отличаются
+## 2.2 Отличия Schedulers
 
 | Scheduler                | Java-код внутри                                          | Когда использовать                              |
 |--------------------------|----------------------------------------------------------|------------------------------------------------|
@@ -129,7 +129,7 @@ RxJavaAlt/
 | **ComputationScheduler** | `pool = newFixedThreadPool(Runtime.getRuntime().availableProcessors()); pool.submit(task);` | Для тяжёлых вычислений, где потокам не нужно долго ждать |
 | **SingleThreadScheduler**| `pool = newSingleThreadExecutor(); pool.submit(task);`   | Когда важен строгий порядок вызовов (UI, логгирование) |
 
-## 2.3 Как мы с ними работаем
+## 2.3 Работа со Schedulers
 
 - **subscribeOn(scheduler)**
   — говорит запустить всю генерацию (OnSubscribe.call) в пуле.
@@ -202,13 +202,6 @@ RxJavaAlt/
      2. Подписываемся и сохраняем `Disposable d`.
      3. В `onNext` после получения, например, пяти элементов, вызываем `d.dispose()`.
      4. Проверяем, что после этого `onNext` больше не вызывается`.
-
-### 3.4 Интеграция в CI
-- **GitHub Actions / Jenkins**:
-  - Шаг `build + test`: запускает `mvn clean test` или `./gradlew clean test`.
-  - Артефакты тестирования собираются в отчёты JUnit.
-- **Надёжность**:
-  - Тесты детерминированы, без флейков, с разумными таймаутами (≤1 с). 
 
 ---
 
