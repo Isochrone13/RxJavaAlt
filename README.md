@@ -98,42 +98,65 @@ RxJavaAlt/
 - **observeOn(Scheduler s)**
   - Каждый входящий `onNext/onError/onComplete` планируется через `s.execute()`, меняя контекст обработки.
 
+Таким образом, на самом базовом уровне, архитектуру реализованной системы можно разбить на следующие части:
+- **Исходный узел (core)** — поставляет данные.
+- **Промежуточные узлы (operators)** — меняет или отбраковывают данные.
+- **Управление потоками (schedulers)** — распределяет поставщиков данных и сами данные по разным путям.
+- **Проверочный узел (tests)** — проверяет, что все промежуточные узлы работают правильно.
+
 ---
 
 ## 2. Принципы работы Schedulers
 
-| Scheduler                | Механизм                              | Где применять                            |
-|--------------------------|----------------------------------------|------------------------------------------|
-| IOThreadScheduler       | newCachedThreadPool()                  | Сетевые, файловые, БД-операции           |
-| ComputationScheduler    | newFixedThreadPool(N)                  | Тяжёлые вычисления, параллелизация CPU   |
-| SingleThreadScheduler   | newSingleThreadExecutor()              | Последовательная обработка, UI-активности|
+### 2.1 Для чего они нужны
 
-**Как это работает:**
-1. **subscribeOn**
-   - Обёртывает `onSubscribe.call(obs)` в `scheduler.execute(...)`.
-   - Вся генерация данных происходит в другом потоке.
+- **В обычном Java** нам бы пришлось вручную создавать потоки, сохранять объекты `Thread` или `ExecutorService`, обрабатывать исключения и т.д., а в нашей мини-RxJava** весь этот хаос спрятан за простым интерфейсом:
+  ```java
+  public interface Scheduler {
+      void execute(Runnable task);
+  }
+  ```
+  и тремя готовыми реализациями:
+  - **IOThreadScheduler** (использует `Executors.newCachedThreadPool()`)
+  - **ComputationScheduler** (использует `Executors.newFixedThreadPool(cores)`)
+  - **SingleThreadScheduler** (использует `Executors.newSingleThreadExecutor()`)
 
-2. **observeOn**
-   - При каждом событии предыдущего уровня вместо прямого вызова `obs.onNext()` выполняет `scheduler.execute(() -> obs.onNext(item))`.
-   - Меняет контекст для downstream-операторов и подписчика.
+## 2.2 Чем они отличаются
+
+| Scheduler                | Java-код внутри                                          | Когда использовать                              |
+|--------------------------|----------------------------------------------------------|------------------------------------------------|
+| **IOThreadScheduler**    | `pool = newCachedThreadPool(); pool.submit(task)`        | Для операций чтения/записи, блокирующего I/O    |
+| **ComputationScheduler** | `pool = newFixedThreadPool(Runtime.getRuntime().availableProcessors()); pool.submit(task);` | Для тяжёлых вычислений, где потокам не нужно долго ждать |
+| **SingleThreadScheduler**| `pool = newSingleThreadExecutor(); pool.submit(task);`   | Когда важен строгий порядок вызовов (UI, логгирование) |
+
+## 2.3 Как мы с ними работаем
+
+- **subscribeOn(scheduler)**
+  — говорит запустить всю генерацию (OnSubscribe.call) в пуле.
+  Мы реализуем это через:
+  ```java
+  scheduler.execute(() -> onSubscribe.call(observer));
+  ```
+  Фактически, весь произвольный код, где вручную эмититим данные `onNext()`, уходит в другой поток.
+
+- **observeOn(scheduler)**
+  — каждый раз, когда приходит onNext/onError/onComplete, говорит вызывать их внутри пула.
+  Мы оборачиваем вызовы:
+  ```java
+  scheduler.execute(() -> downstreamObserver.onNext(item));
+  ```
 
 ---
 
 ## 3. Процесс тестирования
 
 ### 3.1 Инструменты и окружение
-- **JUnit 5** — основной фреймворк для написания и запуска юнит-тестов.
-- **CountDownLatch** — синхронизирует основной тестовый поток и асинхронные операции.
-- **AtomicInteger**, **AtomicBoolean** — позволяют безопасно проверять и изменять значения из разных потоков.
-- **Maven/Gradle** — сборка и управление зависимостями, интеграция с CI.
+Мы используем **JUnit 5** плюс несколько утилит из `java.util.concurrent`:
+- **CountDownLatch** — чтобы дождаться, когда асинхронная часть закончит работу;
+- **AtomicInteger/AtomicReference** — чтобы безопасно читать и писать значения из разных потоков.
+**Файл с тестами** `ObservableTest.java` находится в пакете `com.rxjava.clone.tests`.
 
-### 3.2 Структура тестового набора
-1. **Файл с тестами**: `ObservableTest.java` в пакете `com.rxjava.clone.tests`.
-2. **Конфигурация**:
-   - В `pom.xml` (Maven) или `build.gradle` (Gradle) подключены JUnit 5.
-   - Тесты запускаются командой `mvn test` или `./gradlew test`.
-
-### 3.3 Основные сценарии тестирования
+### 3.2 Основные сценарии тестирования
 1. **Map + Filter**
    - **Цель**: убедиться, что комбинация операторов работает в нужном порядке.
    - **Шаги**:
