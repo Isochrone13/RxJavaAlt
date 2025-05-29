@@ -4,8 +4,8 @@ import com.rxjava.alt.core.Observable;
 import com.rxjava.alt.core.Observer;
 import java.util.function.Function;
 
-// Оператор, преобразующий каждый элемент входящего Observable<T>
-// в новый элемент типа R с помощью переданной функции mapper.
+// Оператор, преобразующий каждый элемент входящего Observable<T> в новый элемент типа R
+// с помощью переданной функции mapper.
 
 public class MapOperator {
 

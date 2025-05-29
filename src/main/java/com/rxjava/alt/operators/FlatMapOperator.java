@@ -73,8 +73,8 @@ public class FlatMapOperator {
             // Добавляем основную подписку в список disposables
             disposables.add(main);
 
-            // Возвращаем Disposable, который при dispose() пройдется по всем
-            // подпискам (основной + вложенные) и отменит их
+            // Возвращаем Disposable, который при dispose() пройдется по всем подпискам
+            // (основной + вложенные) и отменит их
             return new Disposable() {
                 @Override
                 public void dispose() {
